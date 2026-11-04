@@ -1,0 +1,28 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#111}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js"}}</script></head><body>
+<script type="module">
+import * as THREE from "three";
+import { makeRenderer, mats } from "/tools/render/lib.js";
+import { SCENES } from "/tools/render/scenes.js";
+const q = new URLSearchParams(location.search);
+const name = q.get("scene"), shot = +q.get("shot") || 0, ss = +q.get("ss") || 1.5;
+try {
+  // shot dims known only after build; build with a temp renderer first
+  const tmp = makeRenderer(64, 64);
+  const scene = new THREE.Scene();
+  const m = mats();
+  const shots = SCENES[name](scene, tmp, m);
+  const s = shots[shot];
+  if (!s) { window.__done = "noshot"; }
+  else {
+    tmp.setSize(Math.round(s.w * ss), Math.round(s.h * ss));
+    const cam = new THREE.PerspectiveCamera(s.fov, s.w / s.h, 0.1, 2000);
+    cam.position.set(...s.pos); cam.lookAt(...s.look);
+    tmp.render(scene, cam);
+    window.__count = shots.length;
+    window.__alpha = !!s.alpha;
+    window.__png = tmp.domElement.toDataURL(s.alpha ? "image/png" : "image/jpeg", 0.95);
+    window.__done = "ok";
+  }
+} catch (e) { window.__done = "err:" + (e.stack || e); }
+</script></body></html>

@@ -1,0 +1,12 @@
+import puppeteer from "puppeteer-core";
+const [routeArg = "home", which = "desktop", lang = "ar"] = process.argv.slice(2);
+const route = routeArg === "home" ? "/" : routeArg;
+const vp = { desktop: { width: 1440, height: 900 }, mobile: { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 } }[which];
+const browser = await puppeteer.launch({ executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe", headless: true, args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--no-sandbox"] });
+const page = await browser.newPage(); await page.setViewport(vp);
+await page.evaluateOnNewDocument((l) => { localStorage.setItem("monolith-lang", l); sessionStorage.setItem("monolith-intro", "1"); }, lang);
+await page.goto("http://localhost:3100" + route, { waitUntil: "networkidle2" });
+await new Promise((s) => setTimeout(s, 3500));
+const r = await page.evaluate(() => { const W = document.documentElement.clientWidth; const out = []; for (const el of document.querySelectorAll("body *")) { const b = el.getBoundingClientRect(); if (b.width && (b.right > W + 2 || b.left < -2)) { let anc = el, clipped = false; while ((anc = anc.parentElement)) { const o = getComputedStyle(anc).overflowX; if (o === "hidden" || o === "auto" || o === "scroll") { clipped = true; break; } } if (!clipped) out.push(`${el.tagName}.${String(el.className).slice(0, 60)} L${Math.round(b.left)} R${Math.round(b.right)}`); } } return { sw: document.documentElement.scrollWidth, W, out: out.slice(0, 12) }; });
+console.log(JSON.stringify(r, null, 1));
+await browser.close();
