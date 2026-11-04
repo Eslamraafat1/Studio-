@@ -1,5 +1,7 @@
 # MONOLITH® — Architecture & Spatial Design Studio (concept website)
 
+🔗 **Live demo: https://acadimy.vercel.app**
+
 A fictional, award-style architecture studio website built with **Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS v4 · GSAP + ScrollTrigger · Motion · React Three Fiber · Lenis**.
 
 > MONOLITH® is a fictional studio. All projects, people, figures, awards and addresses are invented for this concept.
