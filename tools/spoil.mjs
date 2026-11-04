@@ -1,0 +1,38 @@
+import puppeteer from "puppeteer-core";
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const OUT = process.env.TEMP + "/shots";
+const browser = await puppeteer.launch({ executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe", headless: true, args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist", "--no-sandbox"] });
+const errs = [];
+const p = await browser.newPage();
+p.on("pageerror", (e) => errs.push(e.message));
+p.on("console", (m) => m.type() === "error" && errs.push(m.text()));
+await p.setViewport({ width: 1440, height: 900 });
+await p.evaluateOnNewDocument(() => { sessionStorage.setItem("monolith-intro", "1"); localStorage.setItem("monolith-theme", "light"); });
+await p.goto("http://localhost:3100/", { waitUntil: "networkidle2" });
+await sleep(9000);
+const setHour = async (h) => { await p.$eval('input[type="range"]', (el, h) => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set; set.call(el, String(h)); el.dispatchEvent(new Event("input", { bubbles: true })); }, h); await sleep(4500); };
+console.log("slider present:", !!(await p.$('input[type="range"]')));
+await setHour(7);
+await p.screenshot({ path: OUT + "/spoil-hero-07.png" });
+await setHour(12);
+await p.screenshot({ path: OUT + "/spoil-hero-12.png" });
+await setHour(19);
+await p.screenshot({ path: OUT + "/spoil-hero-19.png" });
+// marquee
+const y = await p.evaluate(() => { const s = document.querySelector('section[aria-label="Selected cities"]'); return s ? s.getBoundingClientRect().top + scrollY : -1; });
+console.log("marquee at", y);
+await p.evaluate((y) => window.scrollTo(0, y - 250), y);
+await sleep(2500);
+await p.screenshot({ path: OUT + "/spoil-marquee.png" });
+// work index preview
+await p.goto("http://localhost:3100/work", { waitUntil: "networkidle2" });
+await sleep(1500);
+const row = await p.evaluate(() => { const li = [...document.querySelectorAll("ul li")].find((l) => l.textContent.includes("DESERT FRAME") || l.textContent.includes("Desert")); li?.scrollIntoView({ block: "center" }); return !!li; });
+await sleep(800);
+const box = await p.evaluate(() => { const li = [...document.querySelectorAll("section[aria-label] ul li")][4]; const r = li.getBoundingClientRect(); return { x: r.left + 400, y: r.top + r.height / 2 }; });
+await p.mouse.move(box.x - 200, box.y);
+await p.mouse.move(box.x, box.y, { steps: 8 });
+await sleep(1200);
+await p.screenshot({ path: OUT + "/spoil-preview.png" });
+console.log("errors:", errs.length, errs.slice(0, 3));
+await browser.close();

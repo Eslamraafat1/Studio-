@@ -19,7 +19,8 @@ function webglOK() {
 }
 
 export default function Hero() {
-  const { u, isRTL } = useLang();
+  const { u, n, isRTL } = useLang();
+  const [hour, setHour] = useState(15);
   const reduced = useReducedMotion();
   const small = useIsSmall();
   const root = useRef<HTMLElement>(null);
@@ -84,7 +85,7 @@ export default function Hero() {
         </div>
         {mount3d && (
           <div className={`absolute inset-0 transition-opacity duration-1000 ${ready ? "opacity-100" : "opacity-0"}`}>
-            <HeroScene play={play || reduced} active={active} reduced={reduced} coarse={small} rtl={isRTL} scroll={scroll} onReady={() => setReady(true)} />
+            <HeroScene play={play || reduced} active={active} reduced={reduced} coarse={small} rtl={isRTL} hour={hour} scroll={scroll} onReady={() => setReady(true)} />
           </div>
         )}
       </div>
@@ -109,13 +110,21 @@ export default function Hero() {
                 <Button href="/work">{u("hero.cta1")}</Button>
                 <Button href="/studio" variant="text" arrow="none">{u("hero.cta2")}</Button>
               </div>
+            {ready && (
+              <label className="eyebrow mt-8 flex w-full max-w-[16rem] flex-col gap-2 text-muted">
+                <span className="flex items-baseline justify-between"><span>{u("hero.time")}</span><span className="num text-fg" dir="ltr">{n(String(Math.floor(hour)).padStart(2, "0"))}:{n(String(Math.round((hour % 1) * 60)).padStart(2, "0"))}</span></span>
+                <input type="range" min={6} max={20} step={0.25} value={hour} onChange={(e) => setHour(Number(e.target.value))} aria-label={u("hero.time")} className="h-6 w-full cursor-pointer accent-[var(--copper)]" />
+              </label>
+            )}
             </div>
-            <a data-hero-in href="#intro" className="eyebrow group hidden items-center gap-4 text-muted md:flex" aria-label={u("hero.scroll")}>
+            <div data-hero-in className="flex flex-col gap-6 md:items-end">
+            <a href="#intro" className="eyebrow group hidden items-center gap-4 text-muted md:flex" aria-label={u("hero.scroll")}>
               <span>{u("hero.scroll")}</span>
               <span aria-hidden className="relative block h-14 w-px overflow-hidden bg-line">
                 <span className="absolute inset-x-0 top-0 h-6 bg-fg motion-safe:animate-[scrollcue_2s_var(--ease-inout)_infinite]" />
               </span>
             </a>
+            </div>
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import SectionHeading from "@/components/ui/SectionHeading";
 import { Reveal } from "@/components/ui/Reveal";
@@ -7,7 +7,8 @@ import TLink from "@/components/ui/TLink";
 import ProjectCard, { type CardVariant } from "./ProjectCard";
 import { categories, projects, type Category } from "@/data/projects";
 import { useLang } from "@/lib/i18n";
-import { EASE } from "@/lib/motion";
+import { EASE, registerGsap, useFinePointer, useReducedMotion } from "@/lib/motion";
+import Img from "@/components/ui/Img";
 import { cn } from "@/lib/utils";
 
 // repeating asymmetric rhythm so no two neighbours match
@@ -20,7 +21,37 @@ const RHYTHM: { v: CardVariant; cls: string }[] = [
   { v: "wide", cls: "md:col-span-12" },
 ];
 
+/** Floating image that follows the cursor while a row of the project index is hovered (fine pointers only). */
+function CursorPreview({ active }: { active: string | null }) {
+  const box = useRef<HTMLDivElement>(null);
+  const fine = useFinePointer();
+  const reduced = useReducedMotion();
+  useEffect(() => {
+    if (!fine || reduced || !box.current) return;
+    const { gsap } = registerGsap();
+    const el = box.current;
+    const x = gsap.quickTo(el, "x", { duration: 0.6, ease: "power3" });
+    const y = gsap.quickTo(el, "y", { duration: 0.6, ease: "power3" });
+    const r = gsap.quickTo(el, "rotation", { duration: 0.8, ease: "power3" });
+    let lx = 0;
+    const move = (e: PointerEvent) => { x(e.clientX + 28); y(e.clientY - 120); r(Math.max(-8, Math.min(8, (e.clientX - lx) * 0.25))); lx = e.clientX; };
+    window.addEventListener("pointermove", move, { passive: true });
+    return () => window.removeEventListener("pointermove", move);
+  }, [fine, reduced]);
+  if (!fine) return null;
+  return (
+    <div ref={box} aria-hidden className="pointer-events-none fixed start-0 top-0 z-40 h-60 w-[22rem] overflow-hidden transition-opacity duration-300" style={{ opacity: active ? 1 : 0 }}>
+      {projects.map((p) => (
+        <div key={p.slug} className="absolute inset-0 transition-all duration-500" style={{ opacity: active === p.slug ? 1 : 0, transform: active === p.slug ? "scale(1)" : "scale(1.12)" }}>
+          <Img src={p.images[0].src} alt="" fill sizes="352px" quality={60} loading="eager" className="object-cover" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function WorkIndex() {
+  const [hover, setHover] = useState<string | null>(null);
   const { u, t, n } = useLang();
   const [cat, setCat] = useState<Category | "all">("all");
   const list = cat === "all" ? projects : projects.filter((p) => p.category === cat);
@@ -55,12 +86,13 @@ export default function WorkIndex() {
         {list.length === 0 && <p className="py-24 text-center text-muted">{u("works.empty")}</p>}
       </section>
 
+      <CursorPreview active={hover} />
       {/* index list — a second, typographic way into the work */}
       <section className="border-t border-line py-20 md:py-32" aria-label={u("works.all")}>
         <div className="container-x">
           <ul>
             {projects.map((p) => (
-              <li key={p.slug} className="border-b border-line">
+              <li key={p.slug} className="border-b border-line" onPointerEnter={(e) => e.pointerType === "mouse" && setHover(p.slug)} onPointerLeave={() => setHover(null)}>
                 <TLink href={`/work/${p.slug}`} data-cursor={u("works.view")} className="group grid grid-cols-[2.5rem_1fr_auto] items-baseline gap-x-4 py-5 md:grid-cols-[5rem_1fr_14rem_8rem_6rem] md:py-7">
                   <span className="num text-sm text-muted">{n(p.no)}</span>
                   <span className="display text-[clamp(1.6rem,4.4vw,4.2rem)] leading-none transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:translate-x-3 rtl:group-hover:-translate-x-3">{t(p.name)}</span>

@@ -30,9 +30,12 @@ export const ui = {
   "hero.cta2": { en: "Discover the studio", ar: "تعرّف على الاستوديو" },
   "hero.scroll": { en: "Scroll", ar: "مرِّر" },
   "hero.caption": { en: "Fig. 01 — Monolith study, in-engine model", ar: "الشكل ٠١ — دراسة «المونوليث»، نموذج ثلاثي الأبعاد" },
+  "hero.time": { en: "Time of day", ar: "وقت اليوم" },
   "hero.drag": { en: "Move your pointer to orbit", ar: "حرّك المؤشر للتدوير" },
   "intro.est": { en: "Architecture & Spatial Design", ar: "عمارة وتصميم مكاني" },
   "intro.loading": { en: "Loading", ar: "جارٍ التحميل" },
+
+  "marq.label": { en: "Selected cities", ar: "مدن مختارة" },
 
   // studio intro
   "intro.statement": {

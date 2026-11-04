@@ -2,6 +2,7 @@ import Hero from "@/components/home/Hero";
 import StudioIntro from "@/components/home/StudioIntro";
 import BlueprintReality from "@/components/home/BlueprintReality";
 import SelectedWorks from "@/components/home/SelectedWorks";
+import CityMarquee from "@/components/home/CityMarquee";
 import Philosophy from "@/components/home/Philosophy";
 import MaterialExplorer from "@/components/home/MaterialExplorer";
 import StudioStats from "@/components/home/StudioStats";
@@ -15,6 +16,7 @@ export default function Home() {
       <StudioIntro />
       <BlueprintReality />
       <SelectedWorks />
+      <CityMarquee />
       <Philosophy />
       <MaterialExplorer />
       <StudioStats />

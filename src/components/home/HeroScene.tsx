@@ -73,6 +73,12 @@ function makeConcrete(seed: number, dark = false) {
   return t;
 }
 
+/** sun position for an hour of the day (06–20). Noon is overhead; the day arcs east → west. */
+function sunPos(h: number): [number, number, number] {
+  const a = ((h - 6) / 14) * Math.PI;
+  return [Math.cos(a) * -24, Math.sin(a) * 20 + 2.5, 12];
+}
+
 function Block({ size, pos, mat }: { size: [number, number, number]; pos: [number, number, number]; mat: THREE.Material }) {
   const geo = useMemo(() => {
     const g = new THREE.BoxGeometry(...size);
@@ -89,8 +95,14 @@ function Block({ size, pos, mat }: { size: [number, number, number]; pos: [numbe
   return <mesh geometry={geo} material={mat} position={pos} castShadow receiveShadow />;
 }
 
-function Sculpture({ play, pointer, scroll, reduced, coarse, rtl }: { rtl: boolean; play: boolean; pointer: React.RefObject<{ x: number; y: number }>; scroll: React.RefObject<number>; reduced: boolean; coarse: boolean }) {
+function Sculpture({ play, pointer, scroll, reduced, coarse, rtl, hour }: { hour: number; rtl: boolean; play: boolean; pointer: React.RefObject<{ x: number; y: number }>; scroll: React.RefObject<number>; reduced: boolean; coarse: boolean }) {
   const group = useRef<THREE.Group>(null);
+  const sun = useRef<THREE.DirectionalLight>(null);
+  const hemi = useRef<THREE.HemisphereLight>(null);
+  const hourRef = useRef(hour);
+  const warm = useMemo(() => new THREE.Color(), []);
+  const cool = useMemo(() => new THREE.Color(0xfff4e6), []);
+  const hot = useMemo(() => new THREE.Color(0xff8f4f), []);
   const top = useRef<THREE.Group>(null);
   const dust = useRef<THREE.Points>(null);
   const { camera, size, invalidate } = useThree();
@@ -129,6 +141,11 @@ function Sculpture({ play, pointer, scroll, reduced, coarse, rtl }: { rtl: boole
     invalidate();
   }, [camera, size, invalidate, rtl]);
 
+  useEffect(() => {
+    hourRef.current = hour;
+    if (reduced) { const l = sun.current; if (l) { l.position.set(...sunPos(hour)); } invalidate(); }
+  }, [hour, reduced, invalidate]);
+
   const rest = useMemo(() => new THREE.Vector3(18, 9.4, 24.6), []);
   useFrame((state) => {
     const g = group.current;
@@ -148,14 +165,30 @@ function Sculpture({ play, pointer, scroll, reduced, coarse, rtl }: { rtl: boole
     const dist = 1 + (1 - e) * 0.55 + s * 0.15;
     camera.position.set(rest.x * dist, rest.y * dist + cur.current.y * -0.8 + (1 - e) * 4, rest.z * dist);
     camera.lookAt(0.3, 4.7, 0);
-    if (top.current && !reduced) top.current.position.y = Math.sin(t * 0.4) * 0.08;
+    // exploded-axon: the upper slabs lift away as you scroll
+    if (top.current) top.current.position.y = (reduced ? 0 : Math.sin(t * 0.4) * 0.08) + s * 2.6;
+    // time of day: the sun travels east → west, warming at the edges of the day
+    const L = sun.current;
+    if (L) {
+      const target = sunPos(hourRef.current);
+      const k = reduced ? 1 : 0.06;
+      L.position.x += (target[0] - L.position.x) * k;
+      L.position.y += (target[1] - L.position.y) * k;
+      L.position.z += (target[2] - L.position.z) * k;
+      const a = ((hourRef.current - 6) / 14) * Math.PI;
+      const w = Math.pow(1 - Math.sin(a), 1.6);
+      warm.copy(cool).lerp(hot, w);
+      L.color.lerp(warm, 0.1);
+      L.intensity = 0.9 + 2.5 * Math.sin(a);
+      if (hemi.current) hemi.current.intensity = 0.45 + 0.35 * Math.sin(a);
+    }
     if (dust.current && !reduced) dust.current.rotation.y = t * 0.01;
   });
 
   return (
     <>
-      <hemisphereLight args={[0xfff6ea, 0x8a8478, 0.75]} />
-      <directionalLight position={[-14, 20, 12]} intensity={3.2} color={0xfff0dc} castShadow shadow-mapSize={coarse ? [1024, 1024] : [2048, 2048]} shadow-camera-left={-18} shadow-camera-right={18} shadow-camera-top={18} shadow-camera-bottom={-18} shadow-camera-near={1} shadow-camera-far={80} shadow-bias={-0.0003} shadow-normalBias={0.03} shadow-radius={5} />
+      <hemisphereLight ref={hemi} args={[0xfff6ea, 0x8a8478, 0.75]} />
+      <directionalLight ref={sun} position={[-14, 20, 12]} intensity={3.2} color={0xfff0dc} castShadow shadow-mapSize={coarse ? [1024, 1024] : [2048, 2048]} shadow-camera-left={-18} shadow-camera-right={18} shadow-camera-top={18} shadow-camera-bottom={-18} shadow-camera-near={1} shadow-camera-far={80} shadow-bias={-0.0003} shadow-normalBias={0.03} shadow-radius={5} />
       <mesh rotation-x={-Math.PI / 2} receiveShadow>
         <planeGeometry args={[200, 200]} />
         <shadowMaterial opacity={0.3} />
@@ -180,7 +213,7 @@ function Sculpture({ play, pointer, scroll, reduced, coarse, rtl }: { rtl: boole
   );
 }
 
-export default function HeroScene({ play, active, reduced, coarse, rtl, onReady, scroll }: { rtl: boolean; play: boolean; active: boolean; reduced: boolean; coarse: boolean; onReady: () => void; scroll: React.RefObject<number> }) {
+export default function HeroScene({ play, active, reduced, coarse, rtl, hour, onReady, scroll }: { hour: number; rtl: boolean; play: boolean; active: boolean; reduced: boolean; coarse: boolean; onReady: () => void; scroll: React.RefObject<number> }) {
   const pointer = useRef({ x: 0, y: 0 });
   useEffect(() => {
     if (coarse || reduced) return;
@@ -205,7 +238,7 @@ export default function HeroScene({ play, active, reduced, coarse, rtl, onReady,
       }}
       aria-hidden="true"
     >
-      <Sculpture play={play} pointer={pointer} scroll={scroll} reduced={reduced} coarse={coarse} rtl={rtl} />
+      <Sculpture play={play} pointer={pointer} scroll={scroll} reduced={reduced} coarse={coarse} rtl={rtl} hour={hour} />
     </Canvas>
   );
 }
