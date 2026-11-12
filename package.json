@@ -33,5 +33,15 @@
     "puppeteer-core": "^25.16.0",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "license": "MIT",
+  "author": "Eslam Raafat <eslamraafat736@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Eslamraafat1/studio-.git"
+  },
+  "homepage": "https://github.com/Eslamraafat1/studio-#readme",
+  "engines": {
+    "node": ">=20.9"
   }
 }
